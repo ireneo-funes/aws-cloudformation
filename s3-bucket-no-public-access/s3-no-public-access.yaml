@@ -1,0 +1,107 @@
+---
+AWSTemplateFormatVersion: 2010-09-09
+Description: Make a private and secure S3 bucket
+Parameters:
+  S3BucketName:
+    Description: Name for Private and Secure S3 Bucket
+    Type: String
+Resources:
+  LoggingBucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Delete
+    Properties:
+      BucketName: !Sub '${S3BucketName}-access-log'
+      AccessControl: LogDeliveryWrite
+  LoggingBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    DependsOn: LoggingBucket
+    Properties:
+      Bucket: !Ref LoggingBucket
+      PolicyDocument:
+        Id: Logging-S3-Policy
+        Version: '2012-10-17'
+        Statement:
+        - Sid: AllowLogsObjectUploads
+          Effect: Allow
+          Action: s3:PutObject
+          Resource: !Sub 'arn:aws:s3:::${LoggingBucket}/*'
+          Principal:
+            AWS: '*'
+  S3Bucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Delete
+    DependsOn: LoggingBucket
+    Properties:
+      BucketName: !Ref S3BucketName
+      AccessControl: Private
+      VersioningConfiguration:
+        Status: Enabled
+      LoggingConfiguration:
+        DestinationBucketName: !Ref LoggingBucket
+  S3BucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    DependsOn: S3Bucket
+    Properties:
+      Bucket: !Ref S3Bucket
+      PolicyDocument:
+        Id: Preventing-Public-Access
+        Version: '2012-10-17'
+        Statement:
+        - Sid: DenyPublicReadACL
+          Effect: Deny
+          Principal:
+            AWS: "*"
+          Action:
+          - s3:PutObject
+          - s3:PutObjectAcl
+          Resource: !Sub 'arn:aws:s3:::${S3Bucket}/*'
+          Condition:
+            StringEquals:
+              s3:x-amz-acl:
+              - public-read
+              - public-read-write
+              - authenticated-read
+        - Sid: DenyPublicReadGrant
+          Effect: Deny
+          Principal:
+            AWS: "*"
+          Action:
+          - s3:PutObject
+          - s3:PutObjectAcl
+          Resource: !Sub 'arn:aws:s3:::${S3Bucket}/*'
+          Condition:
+            StringLike:
+              s3:x-amz-grant-read:
+              - "*http://acs.amazonaws.com/groups/global/AllUsers*"
+              - "*http://acs.amazonaws.com/groups/global/AuthenticatedUsers*"
+        - Sid: DenyPublicListACL
+          Effect: Deny
+          Principal:
+            AWS: "*"
+          Action: s3:PutBucketAcl
+          Resource: !Sub 'arn:aws:s3:::${S3Bucket}'
+          Condition:
+            StringEquals:
+              s3:x-amz-acl:
+              - public-read
+              - public-read-write
+              - authenticated-read
+        - Sid: DenyPublicListGrant
+          Effect: Deny
+          Principal:
+            AWS: "*"
+          Action: s3:PutBucketAcl
+          Resource: !Sub 'arn:aws:s3:::${S3Bucket}'
+          Condition:
+            StringLike:
+              s3:x-amz-grant-read:
+              - "*http://acs.amazonaws.com/groups/global/AllUsers*"
+              - "*http://acs.amazonaws.com/groups/global/AuthenticatedUsers*"
+Outputs:
+  S3BucketName:
+    Description: The name of the generated S3 bucket
+    Value: !Ref S3Bucket
+  LoggingBucketName:
+    Description: The name of logging bucket
+    Value: !Ref LoggingBucket
+...
