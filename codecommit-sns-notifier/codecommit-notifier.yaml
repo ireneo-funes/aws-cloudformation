@@ -1,0 +1,136 @@
+---
+AWSTemplateFormatVersion: 2010-09-09
+Description: CodeCommit -> SNS -> Lambda -> Slack Channel
+Parameters:
+  # all the resources will have the same name as stack name
+  StackName:
+    Description: name for the entire stack
+    Type: String
+  WebHookURL:
+    Description: URL for slack webhook
+    Type: String
+Resources:
+  # IAM Role to dictate which permissions the Lambda function can access
+  LambdaRole:
+    Type: AWS::IAM::Role
+    DeletionPolicy: Delete
+    Properties:
+      RoleName: !Ref StackName
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Sid: ''
+          Effect: Allow
+          Principal:
+            Service:
+            - lambda.amazonaws.com
+          Action: sts:AssumeRole
+      Path: "/"
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+        # need to access CodeCommit to retrieve information about commit
+        - arn:aws:iam::aws:policy/AWSCodeCommitReadOnly
+  LambdaFunction:
+    Type: AWS::Lambda::Function
+    DependsOn: LambdaRole
+    DeletionPolicy: Delete
+    Properties:
+      Description: Make a slack message for codecommit operation
+      Role: !GetAtt LambdaRole.Arn
+      Runtime: python3.6
+      Timeout: 3
+      FunctionName: !Ref StackName
+      Handler: index.lambda_handler
+      Environment:
+        Variables:
+          WebHookURL: !Ref WebHookURL
+      Code: 
+        ZipFile: |
+          def lambda_handler(event, context):
+            import json
+
+            json_string = event['Records'][0]['Sns']['Message']
+            message = json.loads(json_string)
+            stub = message['Records'][0]
+            
+            region = stub['awsRegion']
+            commitID = stub['codecommit']['references'][0]['commit']
+            repoName = stub['eventSourceARN'].split(':')[-1]
+
+            message = CodeCommitSlackMessage(region, commitID, repoName)
+            message.send()
+
+          class CodeCommitSlackMessage:
+            def __init__(self, region, commitID, repoName):
+              import boto3
+
+              client = boto3.client('codecommit')
+              response = client.get_commit(repositoryName=repoName, commitId=commitID)
+              self.subject = response['commit']['message'].splitlines()[0]
+              self.author = response['commit']['committer']['name']
+              self.region = region
+              self.commitID = commitID
+              self.repoName = repoName
+              self.attachment = self._make_attachment()
+
+            def send(self):
+                import logging
+                import urllib.request
+                import urllib.error
+                import os
+  
+                logger = logging.getLogger()
+                logger.setLevel(logging.INFO)
+                logger.info(self.attachment)
+  
+                header = {'Content-Type': 'application/json'}
+                req = urllib.request.Request(os.environ['WebHookURL'], data=self.attachment, method="POST", headers=header)
+                try:
+                  with urllib.request.urlopen(req) as response:
+                    body = response.read().decode("utf-8")
+                    logger.info(body)
+                except urllib.error.HTTPError as e:
+                  logger.error("Request failed: {} {}".format(e.code, e.reason))
+                except urllib.URLError as e:
+                  logger.error("Server connection failed: {}".format(e.reason))
+
+            def _make_attachment(self):
+              import json
+
+              repo_url = "https://{}.console.aws.amazon.com/codecommit/home?region={}#/repository/{}".format(self.region, self.region, self.repoName)
+              commit_url = "{}/commit/{}".format(repo_url, self.commitID)
+              commit_txt = "<{}|{}>".format(commit_url, self.commitID[:7])
+
+              body = {}
+              body["fallback"] = "{} pushes a commit to {}".format(self.author, self.repoName)
+              body["color"] = "good"
+              body["pretext"] = "*{}* pushes a commit {} to repository <{}|{}>.".format(self.author, commit_txt, repo_url, self.repoName)
+              body["text"] = self.subject
+              #body["fields"] = []
+              #body["fields"].append({"title": "Author", "value": self.author, "short": True}) 
+              #body["fields"].append({"title": "Commit ID", "value": commit_txt, "short": True})
+              #body["fields"].append({"title": "Summary", "value": self.subject, "short": False})
+              result = {"attachments": [body]}
+
+              return json.dumps(result).encode("utf-8")
+  SNSTopic:
+    Type: AWS::SNS::Topic
+    DependsOn: LambdaFunction
+    DeletionPolicy: Delete
+    Properties:
+      DisplayName: !Ref StackName
+      TopicName: !Ref StackName
+      Subscription:
+        - Endpoint: !GetAtt LambdaFunction.Arn
+          Protocol: lambda
+  # Grant AWS SNS to invoke the Lambda function
+  LambdaPermission:
+    Type: AWS::Lambda::Permission
+    DependsOn: SNSTopic
+    DeletionPolicy: Delete
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !GetAtt LambdaFunction.Arn
+      Principal: sns.amazonaws.com
+      SourceArn: !Ref SNSTopic
+...
