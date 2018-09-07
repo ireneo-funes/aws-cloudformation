@@ -1,13 +1,14 @@
 ---
 AWSTemplateFormatVersion: 2010-09-09
-Description: 'Static website hosting based on S3 bucket'
+Description: >
+  Static website hosting based on S3 bucket
 Parameters:
   S3BucketName:
     Description: S3 bucket name used for static website hosting
     Type: String
 Resources:
   S3Bucket:
-    Type: 'AWS::S3::Bucket'
+    Type: AWS::S3::Bucket
     Properties:
       # the bucket has the same name as domain
       BucketName: !Ref S3BucketName
@@ -17,7 +18,7 @@ Resources:
         ErrorDocument: error.html
     DeletionPolicy: Delete
   BucketPolicy:
-    Type: 'AWS::S3::BucketPolicy'
+    Type: AWS::S3::BucketPolicy
     Properties:
       PolicyDocument:
         Id: PublicAccessPolicy
@@ -26,7 +27,7 @@ Resources:
           - Sid: PublicReadForGetBucketObjects
             Effect: Allow
             Principal: '*'
-            Action: 's3:GetObject'
+            Action: s3:GetObject
             Resource: !Sub 'arn:aws:s3:::${S3Bucket}/*'
       Bucket: !Ref S3Bucket
 Outputs:
