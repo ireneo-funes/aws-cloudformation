@@ -29,10 +29,10 @@ Resources:
         - arn:aws:iam::aws:policy/AWSCodeCommitReadOnly
   LambdaFunction:
     Type: AWS::Lambda::Function
+    Description: Send commit info to slack channel
     DependsOn: LambdaRole
     DeletionPolicy: Delete
     Properties:
-      Description: Send commit info to Slack channel
       Role: !GetAtt LambdaRole.Arn
       Runtime: python3.6
       Timeout: 3
@@ -90,18 +90,17 @@ Resources:
               payload = json.dumps(msg).encode("utf-8")
               self._send(payload)
 
-            def _send(self, attachment):
+            def _send(self, payload):
               import logging
               import urllib.request
               import urllib.error
-              import os
 
               logger = logging.getLogger()
               logger.setLevel(logging.INFO)
-              logger.info(attachment)
+              logger.info(payload)
 
               header = {'Content-Type': 'application/json'}
-              req = urllib.request.Request(self.webhook_url, data=attachment, method="POST", headers=header)
+              req = urllib.request.Request(self.webhook_url, data=payload, method="POST", headers=header)
               try:
                 with urllib.request.urlopen(req) as response:
                   body = response.read().decode("utf-8")
@@ -110,10 +109,9 @@ Resources:
                 logger.error("Request failed: {} {}".format(e.code, e.reason))
               except urllib.URLError as e:
                 logger.error("Server connection failed: {}".format(e.reason))
-
   SNSTopic:
     Type: AWS::SNS::Topic
-    Description: CodeCommit publishes message to this channel and Lambda subscribes to it
+    Description: Receive CodeCommit event and forward it to Lambda
     DependsOn: LambdaFunction
     DeletionPolicy: Delete
     Properties:
@@ -124,7 +122,7 @@ Resources:
           Protocol: lambda
   SNSPermission:
     Type: AWS::Lambda::Permission
-    Description: Grants SNS the permission to invoke the above Lambda
+    Description: Give SNS the permission to invoke Lambda function
     DependsOn: SNSTopic
     DeletionPolicy: Delete
     Properties:

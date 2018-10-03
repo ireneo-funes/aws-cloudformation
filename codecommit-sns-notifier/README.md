@@ -6,3 +6,6 @@ sent to a Slack channel.
 
 ![diagrm.png](./diagram.png)
 
+## Usage
+
+This project provides a Makefile and CloudFormation template.
