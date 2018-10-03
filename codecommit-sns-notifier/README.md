@@ -6,6 +6,8 @@ sent to a Slack channel.
 
 ![diagrm.png](./diagram.png)
 
+All the AWS resource will have the same name as stack name.
+
 ## Usage
 
 This project provides a Makefile and CloudFormation template.

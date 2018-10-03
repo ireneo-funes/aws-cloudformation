@@ -1,8 +1,7 @@
 ---
 AWSTemplateFormatVersion: 2010-09-09
-Description: >-
+Description: 
   CodeCommit -> SNS -> Lambda -> Slack Channel
-  All the resources will share the same name with the stack
 Parameters:
   WebHookURL:
     Description: URL for slack webhook
@@ -29,14 +28,14 @@ Resources:
         - arn:aws:iam::aws:policy/AWSCodeCommitReadOnly
   LambdaFunction:
     Type: AWS::Lambda::Function
-    Description: Send commit info to slack channel
     DependsOn: LambdaRole
     DeletionPolicy: Delete
     Properties:
-      Role: !GetAtt LambdaRole.Arn
+      Description: Send commit info to slack channel
+      FunctionName: !Sub ${AWS::StackName}
       Runtime: python3.6
       Timeout: 3
-      FunctionName: !Sub ${AWS::StackName}
+      Role: !GetAtt LambdaRole.Arn
       Handler: index.lambda_handler
       Environment:
         Variables:
