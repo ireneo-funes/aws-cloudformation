@@ -1,0 +1,37 @@
+---
+AWSTemplateFormatVersion: 2010-09-09
+Description: Initialize CodeCommit repository and integrate with Slack
+Parameters:
+  RepoName:
+    Description: Name of CodeCommit Repository
+    Type: String
+    Default: test-repo
+  RepoDescription:
+    ConstraintDescription: Less than 1000 characters
+    Type: String
+    Default: Test lengthy comments for description
+  TriggerName:
+    Description: Name of CodeCommit trigger
+    Type: String
+    Default: CodeCommit-Notifier
+  SNSarn:
+    Description: ARN of CodeCommit-Notifier SNS
+    Type: String
+    Default: arn:aws:sns:us-wset-2:123456789:blahblan
+Resources:
+  CodeCommitRepository:
+    Type: AWS::CodeCommit::Repository
+    DeletionPolicy: Retain
+    Properties:
+      RepositoryName: !Ref RepoName
+      RepositoryDescription: !Ref RepoDescription
+      Triggers:
+        - Name: !Ref TriggerName
+          DestinationArn: !Ref SNSarn
+          Events:
+            - all
+Outputs:
+  CodeCommitRepository:
+    Description: The name of CodeCommit Repository
+    Value: !Ref CodeCommitRepository
+...
