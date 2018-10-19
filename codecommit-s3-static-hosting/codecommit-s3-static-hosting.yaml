@@ -1,0 +1,72 @@
+---
+AWSTemplateFormatVersion: 2010-09-09
+Description: |
+  Static hosting with S3 and CodeCommit Repository containing Static Files
+Parameters:
+  WebBucketName:
+    Description: >
+      S3 bucket name for website.
+      The bucket name must match the website name.
+    Type: String
+    Default: www.example.com
+  RepoDescription:
+    ConstraintDescription: Less than 1000 characters
+    Type: String
+    Default: Type repository description here.
+  TriggerName:
+    Description: Name of CodeCommit trigger
+    Type: String
+    Default: Name your trigger
+  SNSarn:
+    Description: ARN of CodeCommit-Notifier SNS
+    Type: String
+    Default: arn:aws:sns:us-west-2:somenumbers:blahblah
+Resources:
+  S3Bucket:
+    Type: AWS::S3::Bucket
+    Description: Holds static files for the website.
+    DeletionPolicy: Delete
+    Properties:
+      BucketName: !Ref WebBucketName
+      AccessControl: PublicRead
+      WebsiteConfiguration:
+        IndexDocument: index.html
+        ErrorDocument: index.html
+  BucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Description: Any one can read contents in the bucket.
+    DependsOn: S3Bucket
+    DeletionPolicy: Delete
+    Properties:
+      PolicyDocument:
+        Id: PublicAccessPolicy
+        Version: 2012-10-17
+        Statement:
+          - Sid: PublicReadForGetBucketObjects
+            Effect: Allow
+            Principal: '*'
+            Action: s3:GetObject
+            Resource: !Sub 'arn:aws:s3:::${S3Bucket}/*'
+      Bucket: !Ref S3Bucket
+  CodeCommitRepository:
+    Type: AWS::CodeCommit::Repository
+    DeletionPolicy: Retain
+    Properties:
+      RepositoryName: !Sub ${AWS::StackName}
+      RepositoryDescription: !Ref RepoDescription
+      Triggers:
+        - Name: !Ref TriggerName
+          DestinationArn: !Ref SNSarn
+          Events:
+            - all
+Outputs:
+  S3BucketName:
+    Description: The name of the generated S3 bucket
+    Value: !Ref S3Bucket
+  EndpointURL:
+    Description: URL for website hosted on S3
+    Value: !GetAtt S3Bucket.WebsiteURL
+  CodeCommitRepository:
+    Description: The name of CodeCommit Repository
+    Value: !Ref CodeCommitRepository
+...

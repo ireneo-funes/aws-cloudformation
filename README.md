@@ -1,9 +1,13 @@
-# aws-cloudformation
+# Introduction
 
-Example code for various CloudFormation tasks
+This project provides CloudFormation templates for the following operations:
 
-- [Generate S3 bucket without public access](s3-bucket-no-public-access/README.md)
-- [Generate Slack Notifier for CodeCommit operations](codecommit-sns-notifier/README.md)
-- [Generate S3 bucket for static website hosting](s3-bucket-static-hosting/README.md)
+- [Make a static website using S3 bucket and CodeCommit repository](codecommit-s3-static-hosting/README.md)
+- [Make Slack Notifier for CodeCommit operations](codecommit-sns-notifier/README.md)
+- [Make an S3 bucket with no public access](s3-bucket-no-public-access/README.md)
+- [Make an S3 bucket for static website hosting](s3-bucket-static-hosting/README.md)
 
-Each example is merely a simple [Makefile](https://en.wikipedia.org/wiki/Makefile) to create and delete a CloudFormation stack.
+Each directory consists of two files:
+
+- a CloudFormation template to create, update, and delete a CloudFormation stack
+- a simple [Makefile](https://en.wikipedia.org/wiki/Makefile) as a wrapper of a CloudFormation template
