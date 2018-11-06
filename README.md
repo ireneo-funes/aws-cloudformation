@@ -7,6 +7,7 @@ This project provides CloudFormation templates for the following operations:
 - [Make Slack Notifier for CodeCommit operations](codecommit-sns-notifier/README.md)
 - [Make an S3 bucket with no public access](s3-bucket-no-public-access/README.md)
 - [Make an S3 bucket for static website hosting](s3-bucket-static-hosting/README.md)
+- [Make a Cognito backend for user authentication and access control](cognito-backend/README.md)
 
 Each directory consists of three files:
 

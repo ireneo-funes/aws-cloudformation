@@ -1,0 +1,148 @@
+---
+AWSTemplateFormatVersion: 2010-09-09
+Description: Cognito resources for user authentication and access control
+Parameters:
+  AppName:
+    Type: String
+    Description: App name in one word
+    Default: MyTestCognito
+Resources:
+  UserPool:
+    Type: AWS::Cognito::UserPool
+    DeletionPolicy: Delete
+    Properties:
+      UserPoolName: !Sub "${AppName} Users"
+      AdminCreateUserConfig:
+        # users can sign themselves up via app
+        AllowAdminCreateUserOnly: False
+        InviteMessageTemplate:
+          EmailSubject: Invitation to OOO
+          EmailMessage: |
+            Dear customer,<br>
+            <br>
+            Your username is <b>{username}</b> and temporary password is <b>{####}</b>.<br>
+            <br>
+            Thanks for choosing OOO.
+        UnusedAccountValidityDays: 7
+      Schema:
+        - Name: email
+          AttributeDataType: String
+          Mutable: false
+          Required: true
+      AutoVerifiedAttributes:
+        - email
+      AliasAttributes:
+        - email
+      Policies:
+        PasswordPolicy:
+          MinimumLength: 8
+          RequireUppercase: true
+          RequireLowercase: true
+          RequireNumbers: true
+          RequireSymbols: false
+  UserPoolClient:
+    Type: AWS::Cognito::UserPoolClient
+    DependsOn: UserPool
+    DeletionPolicy: Delete
+    Properties:
+      ClientName: !Sub ${AppName}-client
+      GenerateSecret: false
+      UserPoolId: !Ref UserPool
+  IdentityPool:
+    Type: AWS::Cognito::IdentityPool
+    DependsOn: UserPoolClient
+    DeletionPolicy: Delete
+    Properties:
+      # IdentityPoolName cannot have '-' in the name
+      IdentityPoolName: !Sub "${AppName} Users"
+      AllowUnauthenticatedIdentities: false
+      CognitoIdentityProviders:
+        - ClientId: !Ref UserPoolClient
+          ProviderName: !GetAtt UserPool.ProviderName
+  CognitoUnauthorizedRole:
+    Type: AWS::IAM::Role
+    DependsOn: IdentityPool
+    DeletionPolicy: Delete
+    Properties:
+      RoleName: !Sub "${AppName}-Cognito-Unauthroized-Role"
+      AssumeRolePolicyDocument:
+        # Refer to https://docs.aws.amazon.com/cognito/latest/developerguide/role-trust-and-permissions.html
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Federated: cognito-identity.amazonaws.com
+            Action:
+              - sts:AssumeRoleWithWebIdentity
+            Condition:
+              StringEquals:
+                cognito-identity.amazonaws.com:aud: !Ref IdentityPool
+              ForAnyValue:StringLike:
+                cognito-identity.amazonaws.com:amr: unauthenticated
+      Policies:
+        - PolicyName: !Sub "${AppName}-Cognito-Unauthorized-Policy"
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - mobileanalytics:PutEvents
+                  - cognito-sync:*
+                Resource: "*"
+  CognitoAuthorizedRole:
+    Type: AWS::IAM::Role
+    DependsOn: IdentityPool
+    DeletionPolicy: Delete
+    Properties:
+      RoleName: !Sub "${AppName}-Cognito-Authroized-Role"
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Federated: cognito-identity.amazonaws.com
+            Action:
+              - sts:AssumeRoleWithWebIdentity
+            Condition:
+              StringEquals:
+                cognito-identity.amazonaws.com:aud: !Ref IdentityPool
+              ForAnyValue:StringLike:
+                cognito-identity.amazonaws.com:amr: authenticated
+      Policies:
+        - PolicyName: !Sub "${AppName}-Cognito-Authorized-Policy"
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - mobileanalytics:PutEvents
+                  - cognito-sync:*
+                  - cognito-identity:*
+                Resource: "*"
+              - Effect: Allow
+                Action:
+                  - lambda:InvokeFunction
+                Resource: "*"
+  IdentityPoolRoleMapping:
+    Type: AWS::Cognito::IdentityPoolRoleAttachment
+    DependsOn: 
+      - IdentityPool
+      - CognitoAuthorizedRole
+      - CognitoUnauthorizedRole
+    DeletionPolicy: Delete
+    Properties:
+      IdentityPoolId: !Ref IdentityPool
+      Roles:
+        authenticated: !GetAtt CognitoAuthorizedRole.Arn
+        unauthenticated: !GetAtt CognitoUnauthorizedRole.Arn
+Outputs:
+  UserPoolId:
+    Description: a unique ID for User Pool
+    Value: !Ref UserPool
+  UserPoolClientId:
+    Description: a unique ID for User Pool Client
+    Value: !Ref UserPoolClient
+  IdentityPoolId:
+    Description: a unique ID for Federated Identity Pool
+    Value: !Ref IdentityPool
+...
