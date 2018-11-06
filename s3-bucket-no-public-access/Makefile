@@ -1,16 +1,17 @@
 # CloudFormation command
 CFN=aws cloudformation
+# template file in YAML format
+TEMPLATE=s3-no-public-access.yaml
+# # set stack name for easy identification
+STACK-NAME=$(PARAM-VALUE)
+
 # CloudFormation option. Only use for multiple AWS accounts.
 CFN-OPT=
 #CFN-OPT=--profile=Alice --region=eu-west-1 --output=json
-# template file in YAML format
-TEMPLATE=s3-no-public-access.yaml
 # the CFN template takes one parameter
 PARAM-KEY=S3BucketName
 # this is the valuef of the parameter
 PARAM-VALUE=(Your Bucket Name goes here)
-# stack name is set to param-value
-STACK-NAME=$(PARAM-VALUE)
 
 all:create
 

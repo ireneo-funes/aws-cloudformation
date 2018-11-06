@@ -2,7 +2,7 @@
 CFN=aws cloudformation
 # template in YAML format
 TEMPLATE=codecommit-notifier.yaml
-# name your stack for AWS resource management
+# # set stack name for easy identification
 STACK-NAME=$(Your stack name goes here)
 # Web Hook URL for Slack
 PARAM-KEY=WebHookURL

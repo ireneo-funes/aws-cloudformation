@@ -9,7 +9,7 @@ TEMPLATE=s3-static-hosting.yaml
 PARAM-KEY=S3BucketName
 # this is the valuef of the parameter
 PARAM-VALUE=(Your Bucket Name goes here)
-# stack name is set to param-value
+# set stack name for easy identification
 STACK-NAME=$(PARAM-VALUE)
 
 all:create

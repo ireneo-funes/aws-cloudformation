@@ -2,7 +2,7 @@
 CFN=aws cloudformation
 # template file in YAML format
 TEMPLATE=cognito-backend.yaml
-# stack name is set to AwesomeWallHQ-website
+# set stack name for easy identification
 STACK-NAME=(Stack name goes here)
 
 # template option
