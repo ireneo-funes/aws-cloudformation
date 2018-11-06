@@ -8,7 +8,8 @@ This project provides CloudFormation templates for the following operations:
 - [Make an S3 bucket with no public access](s3-bucket-no-public-access/README.md)
 - [Make an S3 bucket for static website hosting](s3-bucket-static-hosting/README.md)
 
-Each directory consists of two files:
+Each directory consists of three files:
 
-- a CloudFormation template to create, update, and delete a CloudFormation stack
-- a simple [Makefile](https://en.wikipedia.org/wiki/Makefile) as a wrapper of a CloudFormation template
+- [CloudFormation](https://aws.amazon.com/cloudformation/) template to create, update, and delete a CloudFormation stack
+- [Makefile](https://en.wikipedia.org/wiki/Makefile) as a wrapper of a CloudFormation template
+- [README](https://en.wikipedia.org/wiki/README) document explaining how to use the CloudFormation template
