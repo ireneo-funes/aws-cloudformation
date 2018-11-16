@@ -13,9 +13,8 @@ This directory contains a CloudFormation template that fulfills the first securi
 
 ## How it works
 
-Refer to `Makefile` for detailed explanation.
-
-Change the makefile variable `PARAM-VALUE` as you want because it contains the name of S3 bucket.
+1. Set the stack name in Makefile
+2. Set the bucket name in YAML file.
 
 ### Create CloudFormation stack
 

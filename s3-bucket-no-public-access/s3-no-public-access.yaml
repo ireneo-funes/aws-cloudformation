@@ -5,6 +5,7 @@ Parameters:
   S3BucketName:
     Description: Name for Private and Secure S3 Bucket
     Type: String
+    Default: # your-bucket-name
 Resources:
   LoggingBucket:
     Type: AWS::S3::Bucket
